@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <!-- Vibrant Gemini Star Gradient -->
+    <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#A855F7"/>
+    </linearGradient>
+    
+    <!-- Flat Clean Arrow Gradient -->
+    <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22D3EE"/>
+      <stop offset="50%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#A855F7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 290 Degree Clockwise Circular Arc (Starts at 4:30 position, sweeps 290° around to top) -->
+  <path d="M 416,314 A 170,170 0 1,1 240,86" fill="none" stroke="url(#arrowGrad)" stroke-width="28" stroke-linecap="round"/>
+
+  <!-- Crisp Solid Arrowhead at top pointing right -->
+  <path d="M 224,50 L 284,86 L 224,122 Z" fill="url(#arrowGrad)"/>
+
+  <!-- Gemini Sparkle Star in Center -->
+  <path d="M 256,148 Q 256,256 148,256 Q 256,256 256,364 Q 256,256 364,256 Q 256,256 256,148 Z" fill="url(#starGrad)"/>
+</svg>
