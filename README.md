@@ -1,6 +1,6 @@
-# AI Prompt Auto-Retry Chrome Extension
+# Gemini Auto-Retry Chrome Extension
 
-A Manifest V3 Chrome Extension designed to automatically capture user prompts and retry submitting them whenever AI chat interfaces (such as Google Gemini, ChatGPT, or Claude) encounter errors, rate limits, or network timeouts.
+A Manifest V3 Chrome Extension designed to automatically capture user prompts and retry submitting them whenever Google Gemini encounters errors, rate limits, or network timeouts.
 
 ## Features
 
@@ -16,9 +16,8 @@ A Manifest V3 Chrome Extension designed to automatically capture user prompts an
 1. Open Google Chrome and navigate to `chrome://extensions`.
 2. Enable **Developer mode** using the toggle switch in the top-right corner.
 3. Click the **Load unpacked** button.
-4. Select the project folder:
-   `/Users/zeemyself/Projects/gemini-auto-retry`
-5. The extension **AI Prompt Auto-Retry** icon will appear in your Chrome toolbar!
+4. Select the `gemini-auto-retry` repository/project folder you downloaded or cloned.
+5. The extension **Gemini Auto-Retry** icon will appear in your Chrome toolbar!
 
 ## Extension Files
 
