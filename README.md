@@ -9,7 +9,7 @@ A Manifest V3 Chrome Extension designed to automatically capture user prompts an
 - **In-Page Floating Widget**: Shows a status panel with live countdown timer, attempt count, and immediate "Retry Now" / "Cancel" controls.
 - **Customizable Error Triggers**: Manage and add custom error text phrases or trigger patterns directly from the extension popup.
 - **Smart Delays & Backoff**: Adjust initial delay (seconds), max retry attempts, and toggle exponential backoff on repeated failures.
-- **Activity & Analytics Log**: Live activity log showing recent retry events, timestamps, platforms, and success rates.
+- **Low CPU & Memory Usage**: Optimized lightweight DOM observation and event-driven status badges.
 
 ## How to Install in Chrome
 
@@ -25,7 +25,7 @@ A Manifest V3 Chrome Extension designed to automatically capture user prompts an
 - [`popup.html`](file:///Users/zeemyself/Projects/gemini-auto-retry/popup.html) — Modern dark-mode extension popup interface
 - [`popup.css`](file:///Users/zeemyself/Projects/gemini-auto-retry/popup.css) — Popup styling & design tokens
 - [`popup.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/popup.js) — Popup logic, setting handlers & storage sync
-- [`background.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/background.js) — Background service worker for logging and badge updates
+- [`background.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/background.js) — Background service worker for stats and badge updates
 - [`content.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/content.js) — Content script monitoring DOM & handling prompt auto-retry
 - [`content.css`](file:///Users/zeemyself/Projects/gemini-auto-retry/content.css) — Floating in-page widget UI styles
 - [`icons/`](file:///Users/zeemyself/Projects/gemini-auto-retry/icons) — Extension icon set (16x16, 32x32, 48x48, 128x128)

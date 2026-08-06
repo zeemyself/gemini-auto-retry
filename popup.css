@@ -87,6 +87,7 @@ h1 {
   display: inline-block;
   width: 44px;
   height: 24px;
+  flex-shrink: 0;
 }
 
 .toggle-switch.small {
@@ -243,6 +244,12 @@ input:checked + .slider:before {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+}
+
+.form-group.toggle-row > div {
+  flex: 1;
+  min-width: 0;
 }
 
 label, .label-text {
@@ -345,73 +352,6 @@ input[type="range"] {
 
 .delete-pattern-btn:hover {
   color: var(--danger);
-}
-
-/* Logs */
-.logs-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.btn-text {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 11px;
-}
-
-.btn-text:hover {
-  color: var(--danger);
-}
-
-.logs-list {
-  max-height: 180px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.log-entry {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 11px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.log-meta {
-  display: flex;
-  justify-content: space-between;
-  color: var(--text-secondary);
-}
-
-.log-prompt {
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.log-status {
-  font-weight: 600;
-  text-transform: capitalize;
-}
-
-.log-status.success { color: var(--success); }
-.log-status.retrying { color: #f59e0b; }
-.log-status.failed { color: var(--danger); }
-
-.empty-state {
-  text-align: center;
-  color: var(--text-secondary);
-  padding: 24px 0;
-  font-size: 12px;
 }
 
 /* Footer */

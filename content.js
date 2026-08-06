@@ -8,7 +8,6 @@
     useExponentialBackoff: true,
     autoScroll: true,
     customErrorPatterns: [
-      "Something went wrong",
       "Please try again",
       "Rate limit exceeded",
       "Too many requests",
@@ -150,6 +149,19 @@
     if (now - lastHandledErrorTimestamp < 12000) return;
 
     const patterns = settings.customErrorPatterns || [];
+    if (!patterns.length) return;
+
+    // Fast check with textContent first (avoids layout reflow / CPU spikes)
+    const textContent = document.body.textContent || '';
+    let candidateFound = false;
+    for (const pat of patterns) {
+      if (pat && pat.length > 2 && textContent.includes(pat)) {
+        candidateFound = true;
+        break;
+      }
+    }
+    if (!candidateFound) return;
+
     const bodyText = document.body.innerText || '';
 
     // Find the FIRST matching error pattern (prevents multiple retries if multiple keywords match at once)
@@ -170,7 +182,7 @@
         initiateAutoRetry(foundPattern, nativeRetryBtn);
       } else if (currentAttempt >= settings.maxRetries && lastHandledErrorText !== foundPattern) {
         lastHandledErrorText = foundPattern;
-        logEvent('failed', `Reached maximum retries (${settings.maxRetries}) for "${foundPattern}"`);
+        incrementStats('failed');
       }
     }
   }
@@ -223,7 +235,6 @@
       ? baseDelay * Math.pow(2, currentAttempt - 1)
       : baseDelay;
 
-    logEvent('retrying', reason);
     updateBadge(`${currentAttempt}/${settings.maxRetries}`, '#F59E0B');
 
     // Show floating UI widget
@@ -271,7 +282,7 @@
     const openModalBtn = findModalTryAgainButton();
     if (openModalBtn) {
       openModalBtn.click();
-      logEvent('success', 'Clicked "Try again" in open menu modal');
+      incrementStats('success');
       updateBadge('OK', '#10B981');
       setTimeout(() => updateBadge('', ''), 3000);
       scrollIfNeeded();
@@ -282,14 +293,13 @@
     const freshNativeBtn = nativeRetryBtn || findNativeRetryButton();
     if (freshNativeBtn) {
       freshNativeBtn.click();
-      logEvent('success', 'Clicked native Redo button');
+      incrementStats('success');
 
       // Step 2: Handle secondary popup menu if it opens (e.g. Gemini "Redo" -> menu with "Try again")
       setTimeout(() => {
         const secondaryBtn = findModalTryAgainButton();
         if (secondaryBtn) {
           secondaryBtn.click();
-          logEvent('success', 'Clicked secondary modal "Try again" menu option');
         }
       }, 300);
 
@@ -309,16 +319,16 @@
         const sendBtn = getSendButton();
         if (sendBtn) {
           sendBtn.click();
-          logEvent('success', 'Re-submitted saved prompt text');
+          incrementStats('success');
           updateBadge('OK', '#10B981');
           setTimeout(() => updateBadge('', ''), 3000);
           scrollIfNeeded();
         } else {
-          logEvent('failed', 'Send button not found or disabled');
+          incrementStats('failed');
         }
       }, 500);
     } else {
-      logEvent('failed', 'Prompt input field not found');
+      incrementStats('failed');
     }
   }
 
@@ -387,17 +397,10 @@
     if (existing) existing.remove();
   }
 
-  function logEvent(status, reason) {
+  function incrementStats(status) {
     chrome.runtime.sendMessage({
-      type: 'LOG_RETRY_EVENT',
-      payload: {
-        platform,
-        url: window.location.href,
-        prompt: lastPrompt,
-        attempt: currentAttempt,
-        status,
-        reason
-      }
+      type: 'INCREMENT_STATS',
+      status
     }).catch(() => {});
   }
 
@@ -416,9 +419,19 @@
     })[m]);
   }
 
+  // Debounced observer to prevent high CPU/memory overhead during active response streaming
+  let scanDebounceTimer = null;
+  function debouncedCheckForErrors() {
+    if (scanDebounceTimer) return;
+    scanDebounceTimer = setTimeout(() => {
+      scanDebounceTimer = null;
+      checkForErrors();
+    }, 600);
+  }
+
   // Observe DOM changes for errors
   const observer = new MutationObserver(() => {
-    checkForErrors();
+    debouncedCheckForErrors();
   });
 
   observer.observe(document.body, {
@@ -427,8 +440,8 @@
     characterData: true
   });
 
-  // Periodic fallback check every 3 seconds
-  setInterval(checkForErrors, 3000);
+  // Periodic fallback check every 5 seconds
+  setInterval(checkForErrors, 5000);
 
   console.log(`[Auto-Retry Extension] Initialized on ${platform}.`);
 })();

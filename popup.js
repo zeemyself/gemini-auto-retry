@@ -16,9 +16,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const addPatternBtn = document.getElementById('addPatternBtn');
   const patternsList = document.getElementById('patternsList');
 
-  const logsContainer = document.getElementById('logsContainer');
-  const clearLogsBtn = document.getElementById('clearLogsBtn');
-
   const saveBtn = document.getElementById('saveBtn');
   const toast = document.getElementById('toast');
 
@@ -46,8 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'useExponentialBackoff',
     'autoScroll',
     'customErrorPatterns',
-    'stats',
-    'logs'
+    'stats'
   ]);
 
   // Sync state to inputs
@@ -121,40 +117,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (e.key === 'Enter') {
       addPatternBtn.click();
     }
-  });
-
-  // Render Logs
-  function renderLogs(logs = []) {
-    if (!logs || logs.length === 0) {
-      logsContainer.innerHTML = `<div class="empty-state">No retry activity logged yet.</div>`;
-      return;
-    }
-
-    logsContainer.innerHTML = '';
-    logs.forEach(log => {
-      const div = document.createElement('div');
-      div.className = 'log-entry';
-      const dateStr = new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      div.innerHTML = `
-        <div class="log-meta">
-          <span>${escapeHtml(log.platform)} • Attempt ${log.attempt}</span>
-          <span>${dateStr}</span>
-        </div>
-        <div class="log-prompt">${escapeHtml(log.prompt)}</div>
-        <div class="log-status ${log.status}">${log.status.toUpperCase()}: ${escapeHtml(log.reason)}</div>
-      `;
-      logsContainer.appendChild(div);
-    });
-  }
-
-  renderLogs(settings.logs);
-
-  // Clear Logs
-  clearLogsBtn.addEventListener('click', async () => {
-    await chrome.storage.local.set({ logs: [], stats: { totalRetries: 0, successRetries: 0, failedRetries: 0 } });
-    statTotal.textContent = '0';
-    statSuccess.textContent = '0';
-    renderLogs([]);
   });
 
   // Save Settings

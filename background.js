@@ -7,7 +7,6 @@ const DEFAULT_SETTINGS = {
   useExponentialBackoff: false,
   autoScroll: true,
   customErrorPatterns: [
-    "Something went wrong",
     "Please try again",
     "Rate limit exceeded",
     "Too many requests",
@@ -23,6 +22,8 @@ const DEFAULT_SETTINGS = {
     "I can't generate",
     "I can't create",
     "I can't change the outfit",
+    "I cannot modify",
+    "I can't modify",
     "that depict minors",
     "encountering an error"
   ],
@@ -30,8 +31,7 @@ const DEFAULT_SETTINGS = {
     totalRetries: 0,
     successRetries: 0,
     failedRetries: 0
-  },
-  logs: []
+  }
 };
 
 // Initialize settings on installation
@@ -44,49 +44,36 @@ chrome.runtime.onInstalled.addListener(async () => {
     updated.customErrorPatterns = DEFAULT_SETTINGS.customErrorPatterns;
   }
   
+  // Clean up legacy logs if present
+  delete updated.logs;
+  await chrome.storage.local.remove('logs');
+  
   await chrome.storage.local.set(updated);
   console.log('[Auto-Retry Extension] Initialized settings.');
 });
 
 // Handle incoming messages from content scripts or popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'LOG_RETRY_EVENT') {
-    handleRetryLog(message.payload);
-    sendResponse({ status: 'ok' });
-  } else if (message.type === 'UPDATE_BADGE') {
+  if (message.type === 'UPDATE_BADGE') {
     updateBadge(message.text, message.color);
+    sendResponse({ status: 'ok' });
+  } else if (message.type === 'INCREMENT_STATS') {
+    handleIncrementStats(message.status);
     sendResponse({ status: 'ok' });
   }
   return true;
 });
 
-async function handleRetryLog(payload) {
-  const data = await chrome.storage.local.get(['stats', 'logs']);
+async function handleIncrementStats(status) {
+  const data = await chrome.storage.local.get('stats');
   const stats = data.stats || { totalRetries: 0, successRetries: 0, failedRetries: 0 };
-  const logs = data.logs || [];
-
   stats.totalRetries += 1;
-  if (payload.status === 'success') {
+  if (status === 'success') {
     stats.successRetries += 1;
-  } else if (payload.status === 'failed') {
+  } else if (status === 'failed') {
     stats.failedRetries += 1;
   }
-
-  // Prepend log entry and keep last 50 entries
-  const newLog = {
-    timestamp: new Date().toISOString(),
-    prompt: payload.prompt || '(No prompt text captured)',
-    url: payload.url || '',
-    platform: payload.platform || 'Unknown',
-    attempt: payload.attempt || 1,
-    status: payload.status || 'retrying',
-    reason: payload.reason || ''
-  };
-
-  logs.unshift(newLog);
-  if (logs.length > 50) logs.pop();
-
-  await chrome.storage.local.set({ stats, logs });
+  await chrome.storage.local.set({ stats });
 }
 
 function updateBadge(text, color = '#4F46E5') {
@@ -95,3 +82,4 @@ function updateBadge(text, color = '#4F46E5') {
     chrome.action.setBadgeBackgroundColor({ color });
   }
 }
+
