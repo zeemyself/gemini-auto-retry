@@ -28,4 +28,4 @@ A Manifest V3 Chrome Extension designed to automatically capture user prompts an
 - [`background.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/background.js) — Background service worker for logging and badge updates
 - [`content.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/content.js) — Content script monitoring DOM & handling prompt auto-retry
 - [`content.css`](file:///Users/zeemyself/Projects/gemini-auto-retry/content.css) — Floating in-page widget UI styles
-- [`icons/`](file:///Users/zeemyself/Projects/gemini-auto-retry/icons) — Extension SVG vector icon set (`icon.svg`, `icon16.svg`, `icon48.svg`, `icon128.svg`)
+- [`icons/`](file:///Users/zeemyself/Projects/gemini-auto-retry/icons) — Extension icon set (16x16, 48x48, 128x128)
