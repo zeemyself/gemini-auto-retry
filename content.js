@@ -151,23 +151,26 @@
     const patterns = settings.customErrorPatterns || [];
     if (!patterns.length) return;
 
+    // Helper to normalize apostrophes (replacing curly ’ with straight ')
+    const norm = (str) => (str || '').replace(/’/g, "'");
+
     // Fast check with textContent first (avoids layout reflow / CPU spikes)
-    const textContent = document.body.textContent || '';
+    const textContentNorm = norm(document.body.textContent);
     let candidateFound = false;
     for (const pat of patterns) {
-      if (pat && pat.length > 2 && textContent.includes(pat)) {
+      if (pat && pat.length > 2 && textContentNorm.includes(norm(pat))) {
         candidateFound = true;
         break;
       }
     }
     if (!candidateFound) return;
 
-    const bodyText = document.body.innerText || '';
+    const bodyTextNorm = norm(document.body.innerText);
 
     // Find the FIRST matching error pattern (prevents multiple retries if multiple keywords match at once)
     let foundPattern = null;
     for (const pat of patterns) {
-      if (pat && pat.length > 2 && bodyText.includes(pat)) {
+      if (pat && pat.length > 2 && bodyTextNorm.includes(norm(pat))) {
         foundPattern = pat;
         break; // Trigger exactly ONCE for the first matching error pattern
       }
