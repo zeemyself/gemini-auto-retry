@@ -48,11 +48,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Sync state to inputs
   masterToggle.checked = settings.enabled !== false;
-  delaySeconds.value = settings.delaySeconds || 5;
+  delaySeconds.value = settings.delaySeconds !== undefined ? settings.delaySeconds : 3;
   delayVal.textContent = `${delaySeconds.value}s`;
-  maxRetries.value = settings.maxRetries || 3;
+  maxRetries.value = settings.maxRetries !== undefined ? settings.maxRetries : 10;
   maxRetriesVal.textContent = maxRetries.value;
-  exponentialBackoff.checked = settings.useExponentialBackoff !== false;
+  exponentialBackoff.checked = settings.useExponentialBackoff === true;
   autoScroll.checked = settings.autoScroll !== false;
 
   currentPatterns = settings.customErrorPatterns || [];

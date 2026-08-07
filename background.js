@@ -34,22 +34,28 @@ const DEFAULT_SETTINGS = {
   }
 };
 
-// Initialize settings on installation
-chrome.runtime.onInstalled.addListener(async () => {
+// Initialize/update settings on extension install or update
+chrome.runtime.onInstalled.addListener(async (details) => {
   const existing = await chrome.storage.local.get(null);
-  const updated = { ...DEFAULT_SETTINGS, ...existing };
   
-  // Merge default patterns if missing
-  if (!existing.customErrorPatterns) {
-    updated.customErrorPatterns = DEFAULT_SETTINGS.customErrorPatterns;
-  }
+  // Merge DEFAULT_SETTINGS error patterns with any custom user-added patterns
+  const existingPatterns = Array.isArray(existing.customErrorPatterns) ? existing.customErrorPatterns : [];
+  const mergedPatterns = Array.from(new Set([...DEFAULT_SETTINGS.customErrorPatterns, ...existingPatterns]));
+  
+  // DEFAULT_SETTINGS takes precedence on install/update, while preserving stats and user patterns
+  const updated = {
+    ...existing,
+    ...DEFAULT_SETTINGS,
+    customErrorPatterns: mergedPatterns,
+    stats: existing.stats || DEFAULT_SETTINGS.stats
+  };
   
   // Clean up legacy logs if present
   delete updated.logs;
   await chrome.storage.local.remove('logs');
   
   await chrome.storage.local.set(updated);
-  console.log('[Auto-Retry Extension] Initialized settings.');
+  console.log(`[Auto-Retry Extension] Initialized/updated settings (reason: ${details?.reason}).`);
 });
 
 // Handle incoming messages from content scripts or popup

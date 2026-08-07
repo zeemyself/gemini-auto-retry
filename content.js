@@ -3,9 +3,9 @@
 (function () {
   let settings = {
     enabled: true,
-    maxRetries: 3,
-    delaySeconds: 5,
-    useExponentialBackoff: true,
+    maxRetries: 10,
+    delaySeconds: 3,
+    useExponentialBackoff: false,
     autoScroll: true,
     customErrorPatterns: [
       "Please try again",
@@ -15,7 +15,18 @@
       "Failed to generate",
       "Network error",
       "Capacity reached",
-      "Quota exceeded"
+      "Quota exceeded",
+      "Internal error",
+      "Service unavailable",
+      "Generation stopped",
+      "I can't depict",
+      "I can't generate",
+      "I can't create",
+      "I can't change the outfit",
+      "I cannot modify",
+      "I can't modify",
+      "that depict minors",
+      "encountering an error"
     ]
   };
 

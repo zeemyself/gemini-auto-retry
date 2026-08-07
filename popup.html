@@ -60,26 +60,26 @@
       <div class="form-group">
         <label for="delaySeconds">Initial Delay (seconds)</label>
         <div class="input-range-wrapper">
-          <input type="range" id="delaySeconds" min="1" max="30" value="5">
-          <span class="badge-value" id="delayVal">5s</span>
+          <input type="range" id="delaySeconds" min="1" max="30" value="3">
+          <span class="badge-value" id="delayVal">3s</span>
         </div>
       </div>
 
       <div class="form-group">
         <label for="maxRetries">Maximum Retry Attempts</label>
         <div class="input-range-wrapper">
-          <input type="range" id="maxRetries" min="1" max="10" value="3">
-          <span class="badge-value" id="maxRetriesVal">3</span>
+          <input type="range" id="maxRetries" min="1" max="10" value="10">
+          <span class="badge-value" id="maxRetriesVal">10</span>
         </div>
       </div>
 
       <div class="form-group toggle-row">
         <div>
           <span class="label-text">Exponential Backoff</span>
-          <span class="help-text">Increases delay on repeated failures (e.g. 5s, 10s, 20s)</span>
+          <span class="help-text">Increases delay on repeated failures (e.g. 3s, 6s, 12s)</span>
         </div>
         <label class="toggle-switch small">
-          <input type="checkbox" id="exponentialBackoff" checked>
+          <input type="checkbox" id="exponentialBackoff">
           <span class="slider"></span>
         </label>
       </div>
