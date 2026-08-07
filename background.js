@@ -3,6 +3,7 @@
 const DEFAULT_SETTINGS = {
   enabled: true,
   maxRetries: 10,
+  infiniteRetries: false,
   delaySeconds: 3,
   useExponentialBackoff: false,
   autoScroll: true,

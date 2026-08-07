@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const delayVal = document.getElementById('delayVal');
   const maxRetries = document.getElementById('maxRetries');
   const maxRetriesVal = document.getElementById('maxRetriesVal');
+  const infiniteRetries = document.getElementById('infiniteRetries');
   const exponentialBackoff = document.getElementById('exponentialBackoff');
   const autoScroll = document.getElementById('autoScroll');
 
@@ -40,6 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'enabled',
     'delaySeconds',
     'maxRetries',
+    'infiniteRetries',
     'useExponentialBackoff',
     'autoScroll',
     'customErrorPatterns',
@@ -51,7 +53,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   delaySeconds.value = settings.delaySeconds !== undefined ? settings.delaySeconds : 3;
   delayVal.textContent = `${delaySeconds.value}s`;
   maxRetries.value = settings.maxRetries !== undefined ? settings.maxRetries : 10;
-  maxRetriesVal.textContent = maxRetries.value;
+  infiniteRetries.checked = settings.infiniteRetries === true;
+  
+  function updateMaxRetriesUI() {
+    if (infiniteRetries.checked) {
+      maxRetries.disabled = true;
+      maxRetriesVal.textContent = '∞';
+    } else {
+      maxRetries.disabled = false;
+      maxRetriesVal.textContent = maxRetries.value;
+    }
+  }
+  updateMaxRetriesUI();
+
   exponentialBackoff.checked = settings.useExponentialBackoff === true;
   autoScroll.checked = settings.autoScroll !== false;
 
@@ -64,13 +78,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   statStatus.textContent = masterToggle.checked ? 'Active' : 'Disabled';
   statStatus.className = masterToggle.checked ? 'stat-value text-indigo' : 'stat-value';
 
-  // Event Listeners for Sliders
+  // Event Listeners
   delaySeconds.addEventListener('input', (e) => {
     delayVal.textContent = `${e.target.value}s`;
   });
 
   maxRetries.addEventListener('input', (e) => {
-    maxRetriesVal.textContent = e.target.value;
+    if (!infiniteRetries.checked) {
+      maxRetriesVal.textContent = e.target.value;
+    }
+  });
+
+  infiniteRetries.addEventListener('change', () => {
+    updateMaxRetriesUI();
   });
 
   masterToggle.addEventListener('change', (e) => {
@@ -125,6 +145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       enabled: masterToggle.checked,
       delaySeconds: parseInt(delaySeconds.value, 10),
       maxRetries: parseInt(maxRetries.value, 10),
+      infiniteRetries: infiniteRetries.checked,
       useExponentialBackoff: exponentialBackoff.checked,
       autoScroll: autoScroll.checked,
       customErrorPatterns: currentPatterns

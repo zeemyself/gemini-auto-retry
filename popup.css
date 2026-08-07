@@ -275,6 +275,11 @@ input[type="range"] {
   cursor: pointer;
 }
 
+input[type="range"]:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .badge-value {
   background: var(--accent-light);
   color: #a5b4fc;

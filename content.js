@@ -4,6 +4,7 @@
   let settings = {
     enabled: true,
     maxRetries: 10,
+    infiniteRetries: false,
     delaySeconds: 3,
     useExponentialBackoff: false,
     autoScroll: true,
@@ -189,12 +190,13 @@
 
     // Auto-retry ONLY triggers if an explicit error/refusal pattern is found
     if (foundPattern) {
-      if (currentAttempt < settings.maxRetries) {
+      const isInfinite = settings.infiniteRetries === true || settings.maxRetries === 0;
+      if (isInfinite || currentAttempt < settings.maxRetries) {
         lastHandledErrorTimestamp = now;
         lastHandledErrorText = foundPattern;
         let nativeRetryBtn = findNativeRetryButton();
         initiateAutoRetry(foundPattern, nativeRetryBtn);
-      } else if (currentAttempt >= settings.maxRetries && lastHandledErrorText !== foundPattern) {
+      } else if (!isInfinite && currentAttempt >= settings.maxRetries && lastHandledErrorText !== foundPattern) {
         lastHandledErrorText = foundPattern;
         incrementStats('failed');
       }
@@ -249,10 +251,13 @@
       ? baseDelay * Math.pow(2, currentAttempt - 1)
       : baseDelay;
 
-    updateBadge(`${currentAttempt}/${settings.maxRetries}`, '#F59E0B');
+    const isInfinite = settings.infiniteRetries === true || settings.maxRetries === 0;
+    const maxDisplay = isInfinite ? '∞' : settings.maxRetries;
+
+    updateBadge(`${currentAttempt}/${maxDisplay}`, '#F59E0B');
 
     // Show floating UI widget
-    showRetryWidget(delay, currentAttempt, settings.maxRetries, reason, () => {
+    showRetryWidget(delay, currentAttempt, maxDisplay, reason, () => {
       // User clicked "Retry Now"
       clearTimeout(retryTimer);
       clearInterval(countdownInterval);
