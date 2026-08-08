@@ -26,7 +26,8 @@ const DEFAULT_SETTINGS = {
     "I cannot modify",
     "I can't modify",
     "that depict minors",
-    "encountering an error"
+    "encountering an error",
+    "try your request again"
   ],
   stats: {
     totalRetries: 0,
