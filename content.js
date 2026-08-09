@@ -28,7 +28,8 @@
       "I can't modify",
       "that depict minors",
       "encountering an error",
-      "try your request again"
+      "try your request again",
+      "with something else instead"
     ]
   };
 
