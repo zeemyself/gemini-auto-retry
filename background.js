@@ -5,7 +5,6 @@ const DEFAULT_SETTINGS = {
   maxRetries: 10,
   infiniteRetries: true,
   delaySeconds: 2,
-  useExponentialBackoff: false,
   autoScroll: true,
   customErrorPatterns: [
     "Please try again",

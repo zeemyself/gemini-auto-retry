@@ -8,7 +8,7 @@ A Manifest V3 Chrome Extension designed to automatically capture user prompts an
 - **Prompt Auto-Capture**: Automatically captures your submitted prompt upon clicking send or pressing Enter.
 - **In-Page Floating Widget**: Shows a status panel with live countdown timer, attempt count, and immediate "Retry Now" / "Cancel" controls.
 - **Customizable Error Triggers**: Manage and add custom error text phrases or trigger patterns directly from the extension popup.
-- **Smart Delays & Backoff**: Adjust initial delay (seconds), max retry attempts, and toggle exponential backoff on repeated failures.
+- **Smart Delays**: Adjust retry delay (seconds) and max retry attempts.
 - **Low CPU & Memory Usage**: Optimized lightweight DOM observation and event-driven status badges.
 
 ## How to Install in Chrome

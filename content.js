@@ -6,7 +6,6 @@
     maxRetries: 10,
     infiniteRetries: true,
     delaySeconds: 2,
-    useExponentialBackoff: false,
     autoScroll: true,
     customErrorPatterns: [
       "Please try again",
@@ -250,10 +249,7 @@
     currentAttempt += 1;
 
     // Calculate delay
-    const baseDelay = settings.delaySeconds || 5;
-    const delay = settings.useExponentialBackoff
-      ? baseDelay * Math.pow(2, currentAttempt - 1)
-      : baseDelay;
+    const delay = settings.delaySeconds || 5;
 
     const isInfinite = settings.infiniteRetries === true || settings.maxRetries === 0;
     const maxDisplay = isInfinite ? '∞' : settings.maxRetries;
