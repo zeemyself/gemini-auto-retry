@@ -4,8 +4,8 @@
   let settings = {
     enabled: true,
     maxRetries: 10,
-    infiniteRetries: false,
-    delaySeconds: 3,
+    infiniteRetries: true,
+    delaySeconds: 2,
     useExponentialBackoff: false,
     autoScroll: true,
     customErrorPatterns: [
@@ -25,11 +25,13 @@
       "I can't create",
       "I can't change the outfit",
       "I cannot modify",
+      "I cannot change",
       "I can't modify",
       "that depict minors",
       "encountering an error",
       "try your request again",
-      "with something else instead"
+      "with something else instead",
+      "Could you try again"
     ]
   };
 
