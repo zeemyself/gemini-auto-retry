@@ -90,19 +90,7 @@
     return el.innerText ? el.innerText.trim() : el.textContent.trim();
   }
 
-  // Helper: Set text into input element
-  function setInputValue(el, text) {
-    if (!el) return;
-    el.focus();
-    if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
-      el.value = text;
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-      el.dispatchEvent(new Event('change', { bubbles: true }));
-    } else if (el.isContentEditable) {
-      el.innerText = text;
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-  }
+
 
   // Helper: Find Send Button
   function getSendButton() {
@@ -328,27 +316,8 @@
       return;
     }
 
-    // Step 3: Re-populate prompt input & submit as fallback
-    const inputEl = getInputElement();
-    const targetPrompt = lastPrompt || sessionStorage.getItem('auto_retry_last_prompt');
-
-    if (inputEl && targetPrompt) {
-      setInputValue(inputEl, targetPrompt);
-      setTimeout(() => {
-        const sendBtn = getSendButton();
-        if (sendBtn) {
-          sendBtn.click();
-          incrementStats('success');
-          updateBadge('OK', '#10B981');
-          setTimeout(() => updateBadge('', ''), 3000);
-          scrollIfNeeded();
-        } else {
-          incrementStats('failed');
-        }
-      }, 500);
-    } else {
-      incrementStats('failed');
-    }
+    // No native retry button found
+    incrementStats('failed');
   }
 
   function scrollIfNeeded() {
