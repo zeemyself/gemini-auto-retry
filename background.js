@@ -5,7 +5,6 @@ const DEFAULT_SETTINGS = {
   maxRetries: 10,
   infiniteRetries: true,
   delaySeconds: 2,
-  autoScroll: true,
   customErrorPatterns: [
     "Please try again",
     "Rate limit exceeded",
@@ -54,9 +53,10 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     stats: existing.stats || DEFAULT_SETTINGS.stats
   };
   
-  // Clean up legacy logs if present
+  // Clean up legacy keys if present
   delete updated.logs;
-  await chrome.storage.local.remove('logs');
+  delete updated.autoScroll;
+  await chrome.storage.local.remove(['logs', 'autoScroll']);
   
   await chrome.storage.local.set(updated);
   console.log(`[Auto-Retry Extension] Initialized/updated settings (reason: ${details?.reason}).`);

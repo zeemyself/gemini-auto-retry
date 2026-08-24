@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const maxRetries = document.getElementById('maxRetries');
   const maxRetriesVal = document.getElementById('maxRetriesVal');
   const infiniteRetries = document.getElementById('infiniteRetries');
-  const autoScroll = document.getElementById('autoScroll');
 
   const statTotal = document.getElementById('statTotal');
   const statSuccess = document.getElementById('statSuccess');
@@ -41,7 +40,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     'delaySeconds',
     'maxRetries',
     'infiniteRetries',
-    'autoScroll',
     'customErrorPatterns',
     'stats'
   ]);
@@ -63,8 +61,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
   updateMaxRetriesUI();
-
-  autoScroll.checked = settings.autoScroll !== false;
 
   currentPatterns = settings.customErrorPatterns || [];
 
@@ -143,7 +139,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       delaySeconds: parseInt(delaySeconds.value, 10),
       maxRetries: parseInt(maxRetries.value, 10),
       infiniteRetries: infiniteRetries.checked,
-      autoScroll: autoScroll.checked,
       customErrorPatterns: currentPatterns
     };
 

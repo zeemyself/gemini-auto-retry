@@ -6,7 +6,6 @@
     maxRetries: 10,
     infiniteRetries: true,
     delaySeconds: 2,
-    autoScroll: true,
     customErrorPatterns: [
       "Please try again",
       "Rate limit exceeded",
@@ -292,7 +291,6 @@
       incrementStats('success');
       updateBadge('OK', '#10B981');
       setTimeout(() => updateBadge('', ''), 3000);
-      scrollIfNeeded();
       return;
     }
 
@@ -312,20 +310,11 @@
 
       updateBadge('OK', '#10B981');
       setTimeout(() => updateBadge('', ''), 3000);
-      scrollIfNeeded();
       return;
     }
 
     // No native retry button found
     incrementStats('failed');
-  }
-
-  function scrollIfNeeded() {
-    if (settings.autoScroll) {
-      setTimeout(() => {
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-      }, 300);
-    }
   }
 
   // Floating UI Widget
