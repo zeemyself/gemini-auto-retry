@@ -5,7 +5,7 @@
     enabled: true,
     maxRetries: 10,
     infiniteRetries: true,
-    delaySeconds: 2,
+    delaySeconds: 1,
     customErrorPatterns: [
       "Please try again",
       "Rate limit exceeded",
