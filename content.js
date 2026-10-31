@@ -247,11 +247,13 @@
     // Show floating UI widget
     showRetryWidget(delay, currentAttempt, maxDisplay, reason, () => {
       // User clicked "Retry Now"
+      pendingRetry = null;
       clearTimeout(retryTimer);
       clearInterval(countdownInterval);
       executeRetry(nativeRetryBtn);
     }, () => {
       // User clicked "Cancel"
+      pendingRetry = null;
       clearTimeout(retryTimer);
       clearInterval(countdownInterval);
       removeWidget();
@@ -260,10 +262,45 @@
       updateBadge('', '');
     });
 
-    // Start countdown
-    retryTimer = setTimeout(() => {
-      executeRetry(nativeRetryBtn);
-    }, delay * 1000);
+    // Start countdown. Deadline-based so heartbeat ticks can fire it while the
+    // tab is hidden (page timers are heavily throttled in background tabs).
+    pendingRetry = { at: Date.now() + delay * 1000, btn: nativeRetryBtn };
+    retryTimer = setTimeout(pumpRetry, delay * 1000); // fast path when visible
+  }
+
+  // Fire the pending retry if its deadline has passed
+  let pendingRetry = null;
+  function pumpRetry() {
+    if (!pendingRetry || Date.now() < pendingRetry.at) return;
+    const { btn } = pendingRetry;
+    pendingRetry = null;
+    clearTimeout(retryTimer);
+    clearInterval(countdownInterval);
+    executeRetry(btn);
+  }
+
+  // Resolve with the first element returned by `finder`, reacting to DOM changes
+  // (MutationObserver callbacks are not throttled in background tabs).
+  function waitForElement(finder, timeoutMs = 5000) {
+    return new Promise((resolve) => {
+      const found = finder();
+      if (found) return resolve(found);
+      let done = false;
+      const finish = (el) => {
+        if (done) return;
+        done = true;
+        mo.disconnect();
+        clearTimeout(safety);
+        resolve(el || null);
+      };
+      const deadline = Date.now() + timeoutMs;
+      const mo = new MutationObserver(() => {
+        const el = finder();
+        if (el || Date.now() > deadline) finish(el);
+      });
+      mo.observe(document.body, { childList: true, subtree: true, attributes: true });
+      const safety = setTimeout(() => finish(finder()), timeoutMs);
+    });
   }
 
   // Helper: Find "Try again" item in open secondary modal menu
@@ -296,26 +333,38 @@
     }
 
     // Step 1: Native Retry / Redo Button
-    const freshNativeBtn = nativeRetryBtn || findNativeRetryButton();
+    const freshNativeBtn = (nativeRetryBtn && nativeRetryBtn.isConnected) ? nativeRetryBtn : findNativeRetryButton();
     if (freshNativeBtn) {
-      freshNativeBtn.click();
-      incrementStats('success');
-
-      // Step 2: Handle secondary popup menu if it opens (e.g. Gemini "Redo" -> menu with "Try again")
-      setTimeout(() => {
-        const secondaryBtn = findModalTryAgainButton();
-        if (secondaryBtn) {
-          secondaryBtn.click();
-        }
-      }, 300);
-
-      updateBadge('OK', '#10B981');
-      setTimeout(() => updateBadge('', ''), 3000);
+      clickNativeRetry(freshNativeBtn);
       return;
     }
 
-    // No native retry button found
-    incrementStats('failed');
+    // Button not rendered yet (e.g. response still finishing in a background tab):
+    // wait for it instead of failing straight away. Block new detections meanwhile.
+    isRetrying = true;
+    waitForElement(findNativeRetryButton, 20000).then((btn) => {
+      isRetrying = false;
+      if (btn) {
+        clickNativeRetry(btn);
+      } else {
+        incrementStats('failed');
+      }
+    });
+  }
+
+  function clickNativeRetry(btn) {
+    btn.click();
+    incrementStats('success');
+
+    // Step 2: Handle secondary popup menu if it opens (e.g. Gemini "Redo" -> menu with "Try again")
+    waitForElement(findModalTryAgainButton).then((secondaryBtn) => {
+      if (secondaryBtn) {
+        secondaryBtn.click();
+      }
+    });
+
+    updateBadge('OK', '#10B981');
+    setTimeout(() => updateBadge('', ''), 3000);
   }
 
   // Floating UI Widget
@@ -420,6 +469,90 @@
 
   // Periodic fallback check every 5 seconds
   setInterval(checkForErrors, 5000);
+
+  // ---- Background heartbeat client ----
+  // While this tab is hidden, the service worker sends a TICK every second over
+  // a long-lived port. Message tasks are not throttled like page timers, so each
+  // tick flushes Gemini's pending frames (via page-visibility.js), fires any due
+  // retry, and scans for errors.
+  // Note: page-visibility.js hides `visibilitychange` from the page, so the real
+  // state arrives via the `gar:visibility` event. This isolated world still sees
+  // the real `document.hidden`.
+  let hbPort = null;
+  let extensionAlive = true;
+
+  function connectHeartbeat() {
+    if (!extensionAlive) return;
+    try {
+      hbPort = chrome.runtime.connect({ name: 'heartbeat' });
+    } catch (_) {
+      extensionAlive = false; // extension reloaded/removed: context invalidated
+      return;
+    }
+    hbPort.onMessage.addListener((msg) => {
+      if (msg.type === 'TICK') {
+        onHeartbeatTick();
+        try { hbPort?.postMessage({ type: 'PONG' }); } catch (_) {}
+      }
+    });
+    hbPort.onDisconnect.addListener(() => {
+      hbPort = null;
+      void chrome.runtime.lastError;
+      setTimeout(connectHeartbeat, 1000); // service worker restarted -> reconnect
+    });
+    syncVisibility();
+  }
+
+  function syncVisibility() {
+    try {
+      hbPort?.postMessage({ type: document.hidden ? 'START' : 'STOP' });
+    } catch (_) {}
+  }
+
+  // Hidden-tab diagnostics: logged to this tab's DevTools console every ~5s while
+  // hidden, so we can see what (if anything) is still stalling in the background.
+  let pageStats = null;
+  let tickCount = 0;
+  window.addEventListener('gar:stats', (e) => {
+    try { pageStats = JSON.parse(e.detail); } catch (_) {}
+  });
+
+  function onHeartbeatTick() {
+    window.dispatchEvent(new Event('gar:tick')); // let Gemini render pending frames
+    pumpRetry();
+    checkForErrors();
+
+    if (++tickCount % 10 === 0 && document.hidden) {
+      // Redo-like buttons present in the DOM, even if not visible/enabled
+      const redoInDom = Array.from(document.querySelectorAll('button')).filter((b) => {
+        const t = (b.getAttribute('aria-label') || b.innerText || '').toLowerCase();
+        return /redo|retry|regenerate|try again/.test(t);
+      });
+      const responses = document.querySelectorAll('model-response, message-content');
+      const lastResponse = responses[responses.length - 1];
+      console.log('[Auto-Retry][hidden]', {
+        ...pageStats,
+        retryBtn: !!findNativeRetryButton(),
+        redoInDom: redoInDom.length,
+        redoInDomDetail: redoInDom.slice(-3).map((b) => ({
+          label: b.getAttribute('aria-label') || b.innerText.trim().slice(0, 30),
+          h: b.offsetHeight,
+          disabled: b.disabled
+        })),
+        lastResponseLen: lastResponse ? lastResponse.textContent.length : -1,
+        pendingRetry: !!pendingRetry,
+        isRetrying,
+        cancelled: userCancelledForCurrentError,
+        lastError: lastHandledErrorText,
+        cooldownLeftMs: Math.max(0, 12000 - (Date.now() - lastHandledErrorTimestamp))
+      });
+    }
+  }
+
+  window.addEventListener('gar:visibility', syncVisibility);
+  document.addEventListener('visibilitychange', syncVisibility); // in case page script is absent
+  window.addEventListener('focus', syncVisibility);
+  connectHeartbeat();
 
   console.log(`[Auto-Retry Extension] Initialized on ${platform}.`);
 })();

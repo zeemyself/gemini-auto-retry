@@ -87,6 +87,64 @@ async function handleIncrementStats(status) {
   await chrome.storage.local.set({ stats });
 }
 
+// ---- Background heartbeat ----
+// Hidden tabs have their timers throttled (down to once per minute) and their
+// rendering paused. The service worker is not throttled, so it drives a 1s tick
+// into every hidden Gemini tab over a long-lived port. Each tick lets the content
+// script scan for errors, fire due retries, and flush Gemini's pending frames.
+const heartbeatPorts = new Map(); // tabId -> { port, active }
+let heartbeatTimer = null;
+
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== 'heartbeat' || !port.sender?.tab?.id) return;
+  const tabId = port.sender.tab.id;
+  heartbeatPorts.set(tabId, { port, active: false });
+
+  port.onMessage.addListener((msg) => {
+    const entry = heartbeatPorts.get(tabId);
+    if (!entry || entry.port !== port) return;
+    if (msg.type === 'START' && !entry.active) {
+      entry.active = true;
+      setDiscardable(tabId, false);
+    } else if (msg.type === 'STOP' && entry.active) {
+      entry.active = false;
+      setDiscardable(tabId, true);
+    }
+    // 'PONG' needs no handling: receiving it resets the service worker idle timer.
+    syncHeartbeatTimer();
+  });
+
+  port.onDisconnect.addListener(() => {
+    const entry = heartbeatPorts.get(tabId);
+    if (entry && entry.port === port) {
+      heartbeatPorts.delete(tabId);
+      if (entry.active) setDiscardable(tabId, true);
+    }
+    syncHeartbeatTimer();
+  });
+});
+
+function syncHeartbeatTimer() {
+  const anyActive = [...heartbeatPorts.values()].some((e) => e.active);
+  if (anyActive && !heartbeatTimer) {
+    heartbeatTimer = setInterval(() => {
+      for (const { port, active } of heartbeatPorts.values()) {
+        if (!active) continue;
+        try {
+          port.postMessage({ type: 'TICK' });
+        } catch (_) {}
+      }
+    }, 500);
+  } else if (!anyActive && heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+}
+
+function setDiscardable(tabId, value) {
+  chrome.tabs.update(tabId, { autoDiscardable: value }).catch(() => {});
+}
+
 function updateBadge(text, color = '#4F46E5') {
   chrome.action.setBadgeText({ text: text || '' });
   if (color) {

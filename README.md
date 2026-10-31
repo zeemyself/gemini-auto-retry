@@ -10,6 +10,7 @@ A Manifest V3 Chrome Extension designed to automatically capture user prompts an
 - **Customizable Error Triggers**: Manage and add custom error text phrases or trigger patterns directly from the extension popup.
 - **Smart Delays**: Adjust retry delay (seconds) and max retry attempts.
 - **Low CPU & Memory Usage**: Optimized lightweight DOM observation and event-driven status badges.
+- **Works in Background Tabs**: Keeps Gemini rendering and retrying while you browse other tabs (service-worker heartbeat + visibility/`requestAnimationFrame` shim).
 
 ## How to Install in Chrome
 
@@ -25,7 +26,8 @@ A Manifest V3 Chrome Extension designed to automatically capture user prompts an
 - [`popup.html`](file:///Users/zeemyself/Projects/gemini-auto-retry/popup.html) — Modern dark-mode extension popup interface
 - [`popup.css`](file:///Users/zeemyself/Projects/gemini-auto-retry/popup.css) — Popup styling & design tokens
 - [`popup.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/popup.js) — Popup logic, setting handlers & storage sync
-- [`background.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/background.js) — Background service worker for stats and badge updates
+- [`background.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/background.js) — Background service worker for stats, badge updates and the background-tab heartbeat
+- [`page-visibility.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/page-visibility.js) — Page-world script that keeps Gemini rendering while its tab is hidden
 - [`content.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/content.js) — Content script monitoring DOM & handling prompt auto-retry
 - [`content.css`](file:///Users/zeemyself/Projects/gemini-auto-retry/content.css) — Floating in-page widget UI styles
 - [`icons/`](file:///Users/zeemyself/Projects/gemini-auto-retry/icons) — Extension icon set (16x16, 32x32, 48x48, 128x128)
