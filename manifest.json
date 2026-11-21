@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Gemini Auto-Retry",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Automatically retries prompts when Google Gemini encounters errors or rate limits.",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "debugger"
   ],
   "host_permissions": [
     "https://gemini.google.com/*"

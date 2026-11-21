@@ -1,15 +1,13 @@
 // Page-world (MAIN) script: keeps Gemini rendering while its tab is in the background.
 //
-// Chrome pauses requestAnimationFrame in hidden tabs and Gemini defers rendering
-// while document.hidden is true, so error/refusal text never reaches the DOM
-// until the tab is focused again. This script:
-//   1. Makes the page always appear visible/focused to Gemini.
-//   2. Patches requestAnimationFrame so queued callbacks are still flushed while
-//      hidden, driven by `gar:tick` events from the content script (which in turn
-//      come from the unthrottled service-worker heartbeat) plus a timer fallback.
-//
-// The extension's content script runs in an isolated world and still sees the
-// real visibility values; it is notified of changes via a `gar:visibility` event.
+// Works as a hybrid defense-in-depth layer alongside chrome.debugger focus emulation:
+//   1. Makes the page always appear visible/focused to Gemini (covers document_start
+//      before debugger attaches, plus fallback when DevTools detaches the debugger).
+//   2. Receives the browser's true background state (`gar:bg-state`) from the service
+//      worker via content.js, because CDP focus emulation overrides document.hidden.
+//   3. Patches requestAnimationFrame and settles finite animations ONLY when the tab
+//      is truly backgrounded AND Chromium's native rAF has actually stalled, so it
+//      never interferes when native 60fps rendering is active.
 
 (function () {
   if (window.__garPageVisibilityInstalled) return;
@@ -33,6 +31,23 @@
     docProto.hasFocus = function () { return true; };
   } catch (_) {}
 
+  // Browser-level background state pushed from background.js -> content.js
+  let bgHidden = false;
+  const isBackgrounded = () => bgHidden || realHidden();
+
+  window.addEventListener('gar:bg-state', (e) => {
+    const next = Boolean(e.detail);
+    if (next && !bgHidden) {
+      virtualTs = performance.now();
+      if (pending.size) scheduleFallbackFlush();
+    }
+    bgHidden = next;
+    if (!next) {
+      burstActive = false;
+      flushFrames();
+    }
+  });
+
   // Intercept visibility events at the earliest point (window, capture phase)
   // so Gemini never learns the tab is hidden. Forward the real state to the
   // extension content script via a private event.
@@ -44,17 +59,28 @@
       if (hidden) {
         virtualTs = performance.now();
         scheduleFallbackFlush();
-      } else flushFrames();
+      } else {
+        flushFrames();
+      }
     }
   };
   window.addEventListener('visibilitychange', onVisibilityEvent, true);
   window.addEventListener('webkitvisibilitychange', onVisibilityEvent, true);
 
-  // ---- 2. requestAnimationFrame that keeps running while hidden ----
+  // ---- 2. requestAnimationFrame that keeps running if native VSync pauses ----
   const nativeRAF = window.requestAnimationFrame.bind(window);
   const nativeCAF = window.cancelAnimationFrame.bind(window);
   const pending = new Map(); // fakeId -> { cb, nativeId }
   let seq = 0x40000000; // separate id range from native ids
+
+  const NATIVE_RAF_STALL_MS = 150;
+  let lastNativeRafTs = performance.now();
+  let pendingStartTs = 0;
+
+  function isNativeRafStalled() {
+    if (!pending.size) return false;
+    return performance.now() - Math.max(lastNativeRafTs, pendingStartTs) > NATIVE_RAF_STALL_MS;
+  }
 
   function runFrame(id, ts) {
     const entry = pending.get(id);
@@ -78,9 +104,7 @@
   // Gemini reveals responses progressively, frame by frame, and only shows the
   // action bar (Redo, etc.) once the reveal finishes. One frame per heartbeat
   // is far too slow, so each tick replays the frames missed since the last one
-  // (~60 per elapsed second). Each frame runs as its own MessageChannel task:
-  // these aren't throttled in hidden tabs, and microtasks (promises, Angular
-  // change detection) run between frames just as they do in a real frame loop.
+  // (~60 per elapsed second) whenever native rAF has stalled in the background.
   const FRAME_MS = 1000 / 60;
   const MAX_BURST_FRAMES = 120;
   const burstChannel = new MessageChannel();
@@ -90,7 +114,7 @@
   const diag = { framesRun: 0, bursts: 0 };
 
   function startBurst() {
-    if (burstActive || !pending.size) return;
+    if (burstActive || !pending.size || !isNativeRafStalled()) return;
     const now = performance.now();
     virtualTs = Math.max(virtualTs, now - MAX_BURST_FRAMES * FRAME_MS);
     burstActive = true;
@@ -101,7 +125,8 @@
 
   burstChannel.port1.onmessage = () => {
     const now = performance.now();
-    if (!realHidden() || !pending.size) {
+    // Stop immediately if foregrounded, queue drained, or native rAF resumed
+    if (!isBackgrounded() || !pending.size || now - lastNativeRafTs <= NATIVE_RAF_STALL_MS) {
       burstActive = false;
       virtualTs = now; // don't "catch up" on idle time later
       return;
@@ -110,7 +135,7 @@
     flushFrames(virtualTs);
     burstFrames++;
     diag.framesRun++;
-    if (virtualTs < now - 1 && burstFrames < MAX_BURST_FRAMES) {
+    if (virtualTs < now - 1 && burstFrames < MAX_BURST_FRAMES && pending.size) {
       burstChannel.port2.postMessage(0);
     } else {
       burstActive = false;
@@ -124,19 +149,25 @@
     // without heartbeat ticks.
     fallbackTimer = setTimeout(() => {
       fallbackTimer = null;
-      if (!realHidden()) return;
-      startBurst();
+      if (!isBackgrounded()) return;
+      if (isNativeRafStalled()) startBurst();
       if (pending.size) scheduleFallbackFlush();
     }, 250);
   }
 
   window.requestAnimationFrame = function requestAnimationFrame(cb) {
     if (typeof cb !== 'function') return nativeRAF(cb); // preserve native TypeError
+    if (pending.size === 0 && !burstActive) {
+      pendingStartTs = performance.now();
+    }
     const id = ++seq;
     const entry = { cb, nativeId: 0 };
     pending.set(id, entry);
-    entry.nativeId = nativeRAF((ts) => runFrame(id, ts));
-    if (realHidden()) scheduleFallbackFlush();
+    entry.nativeId = nativeRAF((ts) => {
+      lastNativeRafTs = performance.now();
+      runFrame(id, ts);
+    });
+    if (isBackgrounded()) scheduleFallbackFlush();
     return id;
   };
 
@@ -151,15 +182,15 @@
   };
 
   // ---- 3. Animation settling ----
-  // Hidden tabs never advance CSS/Web Animations, so `animationend`,
-  // `transitionend` and Animation `finish` events never fire. Gemini (Angular)
-  // waits for these before showing the next part of a response and its action
-  // bar. While hidden, finish each finite animation once its real duration has
-  // elapsed and dispatch the completion events ourselves. Real (trusted)
-  // duplicates of CSS events that Chrome delivers later are suppressed.
+  // Hidden tabs may pause CSS/Web Animations, preventing `animationend`,
+  // `transitionend` and Animation `finish` events from firing. While backgrounded,
+  // finish each finite animation once its real duration (+100ms grace) has elapsed
+  // if it is still stuck in 'running'. Naturally completing animations finish on
+  // their own before the grace period and are skipped automatically.
   const animFirstSeen = new WeakMap(); // Animation -> { at, remaining }
   const settled = new WeakSet();
   const syntheticCssEvents = new WeakMap(); // target -> Set("type|name|pseudo")
+  const ANIM_SETTLE_GRACE_MS = 100;
   diag.animsSettled = 0;
   diag.runningAnims = 0;
 
@@ -201,7 +232,7 @@
         seen = { at: now, remaining: Math.max(0, (end - cur) / Math.abs(a.playbackRate || 1)) };
         animFirstSeen.set(a, seen);
       }
-      if (now - seen.at < seen.remaining) continue;
+      if (now - seen.at < seen.remaining + ANIM_SETTLE_GRACE_MS) continue;
 
       settled.add(a);
       diag.animsSettled++;
@@ -226,13 +257,21 @@
 
   // Heartbeat ticks from the content script (unthrottled message tasks).
   window.addEventListener('gar:tick', () => {
-    if (realHidden()) {
-      startBurst();
+    const hidden = isBackgrounded();
+    const stalled = isNativeRafStalled();
+    if (hidden) {
+      if (stalled) startBurst();
       settleAnimations();
     }
     // Diagnostics for the content script (primitive detail crosses worlds).
     window.dispatchEvent(new CustomEvent('gar:stats', {
-      detail: JSON.stringify({ pendingRAF: pending.size, ...diag })
+      detail: JSON.stringify({
+        pendingRAF: pending.size,
+        bgHidden,
+        realHidden: realHidden(),
+        nativeRafStalled: stalled,
+        ...diag
+      })
     }));
   });
 })();

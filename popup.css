@@ -403,3 +403,78 @@ input[type="range"]:disabled {
   opacity: 0;
   pointer-events: none;
 }
+
+/* Debugger Status Bar */
+.debugger-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+}
+
+.debugger-status-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-active {
+  background: var(--success);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.55);
+}
+
+.dot-warn {
+  background: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.45);
+}
+
+.dot-muted {
+  background: #64748b;
+}
+
+.debugger-status-text {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-reattach {
+  background: var(--accent-light);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: 6px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.btn-reattach:hover {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.btn-reattach:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-reattach.hidden {
+  display: none;
+}

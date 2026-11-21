@@ -84,6 +84,25 @@
         </label>
       </div>
 
+      <div class="form-group toggle-row">
+        <div>
+          <span class="label-text">Debugger Focus Emulation</span>
+          <span class="help-text">Keep background tabs focused, unthrottled &amp; send trusted clicks</span>
+        </div>
+        <label class="toggle-switch small">
+          <input type="checkbox" id="debuggerMode" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="debugger-status-bar" id="debuggerStatusBar">
+        <div class="debugger-status-info">
+          <span class="status-dot dot-muted" id="debuggerStatusDot"></span>
+          <span class="debugger-status-text" id="debuggerStatusText">Checking debugger...</span>
+        </div>
+        <button id="reattachBtn" class="btn-reattach hidden" type="button">Re-attach</button>
+      </div>
+
     </section>
 
     <!-- Tab 2: Error Triggers/Patterns -->

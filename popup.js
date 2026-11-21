@@ -6,6 +6,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const maxRetries = document.getElementById('maxRetries');
   const maxRetriesVal = document.getElementById('maxRetriesVal');
   const infiniteRetries = document.getElementById('infiniteRetries');
+  const debuggerMode = document.getElementById('debuggerMode');
+
+  const debuggerStatusDot = document.getElementById('debuggerStatusDot');
+  const debuggerStatusText = document.getElementById('debuggerStatusText');
+  const reattachBtn = document.getElementById('reattachBtn');
 
   const statTotal = document.getElementById('statTotal');
   const statSuccess = document.getElementById('statSuccess');
@@ -40,6 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'delaySeconds',
     'maxRetries',
     'infiniteRetries',
+    'debuggerMode',
     'customErrorPatterns',
     'stats'
   ]);
@@ -50,7 +56,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   delayVal.textContent = `${delaySeconds.value}s`;
   maxRetries.value = settings.maxRetries !== undefined ? settings.maxRetries : 10;
   infiniteRetries.checked = settings.infiniteRetries === true;
-  
+  debuggerMode.checked = settings.debuggerMode !== false;
+
   function updateMaxRetriesUI() {
     if (infiniteRetries.checked) {
       maxRetries.disabled = true;
@@ -70,6 +77,71 @@ document.addEventListener('DOMContentLoaded', async () => {
   statSuccess.textContent = stats.successRetries;
   statStatus.textContent = masterToggle.checked ? 'Active' : 'Disabled';
   statStatus.className = masterToggle.checked ? 'stat-value text-indigo' : 'stat-value';
+
+  // Render live debugger status
+  function renderDebuggerStatus(status) {
+    if (!status) {
+      debuggerStatusDot.className = 'status-dot dot-muted';
+      debuggerStatusText.textContent = 'Debugger status unavailable';
+      reattachBtn.classList.add('hidden');
+      return;
+    }
+
+    if (!status.enabled || !status.debuggerMode) {
+      debuggerStatusDot.className = 'status-dot dot-muted';
+      debuggerStatusText.textContent = 'Debugger disabled';
+      reattachBtn.classList.add('hidden');
+      return;
+    }
+
+    if (status.geminiTabCount === 0) {
+      debuggerStatusDot.className = 'status-dot dot-muted';
+      debuggerStatusText.textContent = 'No Gemini tabs open';
+      reattachBtn.classList.add('hidden');
+      return;
+    }
+
+    const tabWord = status.attachedCount === 1 ? 'tab' : 'tabs';
+    if (status.attachedCount === status.geminiTabCount) {
+      debuggerStatusDot.className = 'status-dot dot-active';
+      debuggerStatusText.textContent = `Debugger attached (${status.attachedCount} ${tabWord})`;
+      reattachBtn.classList.add('hidden');
+      return;
+    }
+
+    debuggerStatusDot.className = 'status-dot dot-warn';
+    if (status.canceledCount > 0) {
+      debuggerStatusText.textContent = 'Debugger paused (banner canceled)';
+    } else if (status.devtoolsCount > 0) {
+      debuggerStatusText.textContent = 'Detached (DevTools open on tab)';
+    } else {
+      debuggerStatusText.textContent = `Attached ${status.attachedCount}/${status.geminiTabCount} tabs`;
+    }
+    reattachBtn.classList.remove('hidden');
+  }
+
+  async function refreshDebuggerStatus() {
+    try {
+      const status = await chrome.runtime.sendMessage({ type: 'GET_DEBUGGER_STATUS' });
+      renderDebuggerStatus(status);
+    } catch (_) {
+      renderDebuggerStatus(null);
+    }
+  }
+
+  refreshDebuggerStatus();
+
+  reattachBtn.addEventListener('click', async () => {
+    reattachBtn.disabled = true;
+    try {
+      const status = await chrome.runtime.sendMessage({ type: 'REATTACH_DEBUGGER' });
+      renderDebuggerStatus(status);
+    } catch (_) {
+      renderDebuggerStatus(null);
+    } finally {
+      reattachBtn.disabled = false;
+    }
+  });
 
   // Event Listeners
   delaySeconds.addEventListener('input', (e) => {
@@ -139,16 +211,27 @@ document.addEventListener('DOMContentLoaded', async () => {
       delaySeconds: parseInt(delaySeconds.value, 10),
       maxRetries: parseInt(maxRetries.value, 10),
       infiniteRetries: infiniteRetries.checked,
+      debuggerMode: debuggerMode.checked,
       customErrorPatterns: currentPatterns
     };
 
     await chrome.storage.local.set(updatedSettings);
 
-    // Notify active content tabs
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tabs[0]) {
-      chrome.tabs.sendMessage(tabs[0].id, { type: 'SETTINGS_UPDATED', settings: updatedSettings }).catch(() => {});
-    }
+    // Notify ALL open Gemini tabs (including background tabs)
+    try {
+      const geminiTabs = await chrome.tabs.query({ url: 'https://gemini.google.com/*' });
+      for (const tab of geminiTabs) {
+        if (typeof tab.id === 'number') {
+          chrome.tabs.sendMessage(tab.id, { type: 'SETTINGS_UPDATED', settings: updatedSettings }).catch(() => {});
+        }
+      }
+    } catch (_) {}
+
+    // Sync debugger attachment immediately and refresh status display
+    try {
+      const status = await chrome.runtime.sendMessage({ type: 'SYNC_DEBUGGER' });
+      renderDebuggerStatus(status);
+    } catch (_) {}
 
     // Show toast
     toast.classList.remove('hidden');
