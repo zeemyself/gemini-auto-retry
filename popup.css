@@ -404,8 +404,8 @@ input[type="range"]:disabled {
   pointer-events: none;
 }
 
-/* Debugger Status Bar */
-.debugger-status-bar {
+/* Keep-Alive Status Bar */
+.keepalive-status-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -416,7 +416,7 @@ input[type="range"]:disabled {
   padding: 8px 12px;
 }
 
-.debugger-status-info {
+.keepalive-status-info {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -444,7 +444,7 @@ input[type="range"]:disabled {
   background: #64748b;
 }
 
-.debugger-status-text {
+.keepalive-status-text {
   font-size: 11px;
   color: var(--text-secondary);
   white-space: nowrap;

@@ -86,21 +86,21 @@
 
       <div class="form-group toggle-row">
         <div>
-          <span class="label-text">Debugger Focus Emulation</span>
-          <span class="help-text">Keep background tabs focused, unthrottled &amp; send trusted clicks</span>
+          <span class="label-text">Background Keep-Alive</span>
+          <span class="help-text">Prevent freezing &amp; timer throttling in hidden tabs (no debugger banner)</span>
         </div>
         <label class="toggle-switch small">
-          <input type="checkbox" id="debuggerMode" checked>
+          <input type="checkbox" id="backgroundKeepAlive" checked>
           <span class="slider"></span>
         </label>
       </div>
 
-      <div class="debugger-status-bar" id="debuggerStatusBar">
-        <div class="debugger-status-info">
-          <span class="status-dot dot-muted" id="debuggerStatusDot"></span>
-          <span class="debugger-status-text" id="debuggerStatusText">Checking debugger...</span>
+      <div class="keepalive-status-bar" id="keepAliveStatusBar">
+        <div class="keepalive-status-info">
+          <span class="status-dot dot-muted" id="keepAliveStatusDot"></span>
+          <span class="keepalive-status-text" id="keepAliveStatusText">Checking background guard...</span>
         </div>
-        <button id="reattachBtn" class="btn-reattach hidden" type="button">Re-attach</button>
+        <button id="reloadTabsBtn" class="btn-reattach hidden" type="button">Reload</button>
       </div>
 
     </section>

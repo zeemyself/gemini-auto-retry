@@ -1,24 +1,19 @@
 # Gemini Auto-Retry Chrome Extension
 
-A Manifest V3 Chrome Extension designed to automatically capture user prompts and retry submitting them whenever Google Gemini encounters errors, rate limits, or network timeouts.
+A Manifest V3 Chrome Extension designed to automatically capture user prompts and retry submitting them whenever Google Gemini encounters errors, refusals, rate limits, or network timeouts.
 
 ## Features
 
-- **Automatic Error Detection**: Scans page content and DOM mutations for error phrases or native "Retry" / "Regenerate" buttons.
+- **Turn-Scoped Error Detection**: Scans only the latest Gemini response turn and active alert banners (never false-triggering on older chat history or user prompts) once streaming completes.
 - **Prompt Auto-Capture**: Automatically captures your submitted prompt upon clicking send or pressing Enter.
 - **In-Page Floating Widget**: Shows a status panel with live countdown timer, attempt count, and immediate "Retry Now" / "Cancel" controls.
 - **Customizable Error Triggers**: Manage and add custom error text phrases or trigger patterns directly from the extension popup.
-- **Smart Delays**: Adjust retry delay (seconds) and max retry attempts.
-- **Low CPU & Memory Usage**: Optimized lightweight DOM observation and event-driven status badges.
-- **Reliable Background Tab Retries (Chrome Debugger Mode)**: Uses `chrome.debugger` (CDP) to enable Blink focus emulation (`Emulation.setFocusEmulationEnabled`), keep background page lifecycle active (`Page.setWebLifecycleState`), override idle detection (`Emulation.setIdleOverride`), prevent tab discarding, and dispatch trusted mouse clicks (`Input.dispatchMouseEvent`) — backed by a hybrid service-worker heartbeat and `requestAnimationFrame` fallback shim.
-
-## Personal Use / Chrome Debugging Banner
-
-Because this extension uses the `debugger` permission for reliable background focus emulation, Chrome displays a `"Gemini Auto-Retry" started debugging this browser` infobar while attached to a Gemini tab:
-
-- Clicking **Cancel** on the infobar cleanly pauses debugger attachment without re-attaching in a loop; you can click **Re-attach** in the extension popup whenever you want to resume.
-- Opening DevTools (`F12` / Inspect) on a Gemini tab temporarily detaches the extension debugger (falling back to the page-visibility shim). To inspect extension logs without detaching Gemini, open the Service Worker console from `chrome://extensions`.
-- *(Optional)* To suppress Chrome's debugging infobar completely for personal use, launch Chrome with `--silent-debugger-extension-api`.
+- **Smart Delays & Guaranteed Cooldown Wakeup**: Configurable retry delay and max/infinite attempts, with automatic wakeup if an error arrives during cooldown.
+- **Debugger-Free Background Tab Retries**: Keeps hidden Gemini tabs rendering and retrying reliably **without** `chrome.debugger` banners or DevTools conflicts:
+  - **Native Blink Scheduler Exemptions**: Holds a lightweight `WebLock` (preventing Chrome Energy Saver / Tab Freezing at 0% CPU) and spins up a demand-driven in-memory loopback `RTCPeerConnection` data channel while hidden (disabling Chrome's 10s/60s Intensive Wake Up Throttling with zero audio or permissions).
+  - **Complete Hidden-Tab Shims**: Unthrottled short `setTimeout` / `setInterval` scheduler, `MessageChannel`-driven `requestAnimationFrame` catch-up bursts, finite CSS/Web Animation settling, `IntersectionObserver` / `ResizeObserver` fallbacks, and `blur` / `focusout` protection for Angular Material menus.
+  - **Adaptive MV3 Heartbeat + `chrome.alarms` Watchdog**: Runs fast `150ms` ticks during active background streaming/retries, drops to `1000ms` while idle-hidden, and uses `0` ticks when foregrounded.
+  - See [background.md](./background.md) for a deep dive into the Chromium & Gemini background-tab bottlenecks and how v2.0.0 solves them.
 
 ## How to Install in Chrome
 
@@ -26,16 +21,17 @@ Because this extension uses the `debugger` permission for reliable background fo
 2. Enable **Developer mode** using the toggle switch in the top-right corner.
 3. Click the **Load unpacked** button.
 4. Select the `gemini-auto-retry` repository/project folder you downloaded or cloned.
-5. The extension **Gemini Auto-Retry** icon will appear in your Chrome toolbar!
+5. Refresh any already-open `gemini.google.com` tabs once so the `document_start` script activates.
 
 ## Extension Files
 
-- [`manifest.json`](file:///Users/zeemyself/Projects/gemini-auto-retry/manifest.json) — Extension Manifest V3 configuration
-- [`popup.html`](file:///Users/zeemyself/Projects/gemini-auto-retry/popup.html) — Modern dark-mode extension popup interface
-- [`popup.css`](file:///Users/zeemyself/Projects/gemini-auto-retry/popup.css) — Popup styling & design tokens
-- [`popup.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/popup.js) — Popup logic, setting handlers & storage sync
-- [`background.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/background.js) — Background service worker managing `chrome.debugger` focus emulation, CDP trusted clicks, true background-tab state tracking, heartbeat, stats, and badge updates
-- [`page-visibility.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/page-visibility.js) — Page-world script that keeps Gemini rendering while its tab is hidden
-- [`content.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/content.js) — Content script monitoring DOM & handling prompt auto-retry
-- [`content.css`](file:///Users/zeemyself/Projects/gemini-auto-retry/content.css) — Floating in-page widget UI styles
-- [`icons/`](file:///Users/zeemyself/Projects/gemini-auto-retry/icons) — Extension icon set (16x16, 32x32, 48x48, 128x128)
+- [`manifest.json`](./manifest.json) — Extension Manifest V3 configuration (no `debugger` permission)
+- [`popup.html`](./popup.html) — Modern dark-mode extension popup interface
+- [`popup.css`](./popup.css) — Popup styling & design tokens
+- [`popup.js`](./popup.js) — Popup logic, live keep-alive status & storage sync
+- [`background.js`](./background.js) — Background service worker driving adaptive heartbeat ticks, `chrome.alarms` watchdog, tab discard protection, stats, and badge updates
+- [`page-visibility.js`](./page-visibility.js) — Page-world (`MAIN`) script providing visibility/blur protection, unthrottled short timers, `rAF` bursts, animation settling, observer fallbacks, and stream-lifecycle tracking
+- [`content.js`](./content.js) — Content script managing `WebLocks`/loopback `WebRTC` exemptions, turn-scoped error detection, and W3C pointer/mouse retry clicks
+- [`content.css`](./content.css) — Floating in-page widget UI styles
+- [`background.md`](./background.md) — Deep dive into background-tab bottlenecks & v2.0.0 architecture
+- [`icons/`](./icons) — Extension icon set (16x16, 32x32, 48x48, 128x128)
