@@ -25,13 +25,13 @@ A Manifest V3 Chrome Extension designed to automatically capture user prompts an
 
 ## Extension Files
 
-- [`manifest.json`](file:///Users/zeemyself/Projects/gemini-auto-retry/manifest.json) — Extension Manifest V3 configuration (no `debugger` permission)
-- [`popup.html`](file:///Users/zeemyself/Projects/gemini-auto-retry/popup.html) — Modern dark-mode extension popup interface
-- [`popup.css`](file:///Users/zeemyself/Projects/gemini-auto-retry/popup.css) — Popup styling & design tokens
-- [`popup.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/popup.js) — Popup logic, live keep-alive status & storage sync
-- [`background.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/background.js) — Background service worker driving adaptive heartbeat ticks, `chrome.alarms` watchdog, tab discard protection, stats, and badge updates
-- [`page-visibility.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/page-visibility.js) — Page-world (`MAIN`) script providing visibility/blur protection, unthrottled short timers, `rAF` bursts, animation settling, observer fallbacks, and stream-lifecycle tracking
-- [`content.js`](file:///Users/zeemyself/Projects/gemini-auto-retry/content.js) — Content script managing `WebLocks`/loopback `WebRTC` exemptions, turn-scoped error detection, and W3C pointer/mouse retry clicks
-- [`content.css`](file:///Users/zeemyself/Projects/gemini-auto-retry/content.css) — Floating in-page widget UI styles
+- [`manifest.json`](./manifest.json) — Extension Manifest V3 configuration (no `debugger` permission)
+- [`popup.html`](./popup.html) — Modern dark-mode extension popup interface
+- [`popup.css`](./popup.css) — Popup styling & design tokens
+- [`popup.js`](./popup.js) — Popup logic, live keep-alive status & storage sync
+- [`background.js`](./background.js) — Background service worker driving adaptive heartbeat ticks, `chrome.alarms` watchdog, tab discard protection, stats, and badge updates
+- [`page-visibility.js`](./page-visibility.js) — Page-world (`MAIN`) script providing visibility/blur protection, unthrottled short timers, `rAF` bursts, animation settling, observer fallbacks, and stream-lifecycle tracking
+- [`content.js`](./content.js) — Content script managing `WebLocks`/loopback `WebRTC` exemptions, turn-scoped error detection, and W3C pointer/mouse retry clicks
+- [`content.css`](./content.css) — Floating in-page widget UI styles
 - [`background.md`](./background.md) — Deep dive into background-tab bottlenecks & v2.0.0 architecture
-- [`icons/`](file:///Users/zeemyself/Projects/gemini-auto-retry/icons) — Extension icon set (16x16, 32x32, 48x48, 128x128)
+- [`icons/`](./icons) — Extension icon set (16x16, 32x32, 48x48, 128x128)
