@@ -35,7 +35,8 @@ const DEFAULT_SETTINGS = {
     "encountering an error",
     "try your request again",
     "with something else instead",
-    "Could you try again"
+    "Could you try again",
+    "go against my guidelines"
   ],
   stats: {
     totalRetries: 0,
